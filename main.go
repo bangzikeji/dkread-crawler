@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gocolly/colly"
 	"io"
 	"log"
 	"net/http"
@@ -11,44 +10,44 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gocolly/colly"
 )
 
 type Item struct {
-	Title 		string
-	Describe	string
-	Cover		string
-	Content		string
-	About		string
-	Category	string
-	Author		string
-	Label		string
-	Score		string
-	Download 	string
+	Title    string
+	Describe string
+	Cover    string
+	Content  string
+	About    string
+	Category string
+	Author   string
+	Label    string
+	Score    string
+	Download string
 }
-
 
 func main() {
 	// Instantiate default collector
-	mysql := fmt.Sprintf("%s:%s@(%s:%d)/%s","root", "2014gaokao","127.0.0.1",3306,"dkread")
+	mysql := fmt.Sprintf("%s:%s@(%s:%d)/%s", "root", "2014gaokao", "127.0.0.1", 3306, "dkread")
 	db, err := sql.Open("mysql", mysql)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	var data = make([]Item,12)
+	var data = make([]Item, 12)
 
-	c := colly.NewCollector(colly.MaxDepth(1),)
+	c := colly.NewCollector(colly.MaxDepth(1))
 	var page = 1
 	var max = 2
 	// On every a element which has href attribute call callback
 	c.OnHTML(".archive-scroll .post .clearfix", func(e *colly.HTMLElement) {
-		href := e.ChildAttr(".post-img","href")
-		title := strings.TrimSpace(e.ChildAttr(".post-img","title"))
-		src := e.ChildAttr(".post-img img","src")
-		img_id := e.ChildAttr(".post-img img","alt")
+		href := e.ChildAttr(".post-img", "href")
+		title := strings.TrimSpace(e.ChildAttr(".post-img", "title"))
+		src := e.ChildAttr(".post-img img", "src")
+		img_id := e.ChildAttr(".post-img img", "alt")
 		img := "images/" + img_id + ".jpg"
-		DownloadFileProgress(src,"../images/" + img_id + ".jpg")
-
+		DownloadFileProgress(src, "../images/"+img_id+".jpg")
 
 		// Print link
 		//fmt.Printf("href: %s\n", href)
@@ -72,7 +71,7 @@ func main() {
 			content := ""
 			about := ""
 			flag := false
-			for k,v := range detailsContent {
+			for k, v := range detailsContent {
 				if v == "🌹 恩+京-的-书+房+ ww w +E nJin g - C o m +" {
 					detailsContent = append(detailsContent[:k], detailsContent[k+1:]...)
 					break
@@ -83,7 +82,7 @@ func main() {
 				if v == "作者简介" {
 					flag = true
 				}
-				if flag{
+				if flag {
 					about += v
 				}
 			}
@@ -92,23 +91,23 @@ func main() {
 			item.About = about
 
 			var category string
-			for _,v := range detailsTip {
+			for _, v := range detailsTip {
 				s := strings.Split(v, "：")
 
-				if s[0] == "分类"{
+				if s[0] == "分类" {
 					category = strings.TrimSpace(s[1])
 					item.Category = strings.TrimSpace(s[1])
 				}
 
-				if s[0] == "作者"{
+				if s[0] == "作者" {
 					item.Author = strings.TrimSpace(s[1])
 				}
 
-				if s[0] == "标签"{
+				if s[0] == "标签" {
 					item.Label = strings.TrimSpace(s[1])
 				}
 
-				if s[0] == "豆瓣评分"{
+				if s[0] == "豆瓣评分" {
 					item.Score = strings.TrimSpace(s[1])
 				}
 
@@ -122,30 +121,28 @@ func main() {
 			//fmt.Printf("details tip: %s\n",detailsTip)
 			//fmt.Printf("details content: %s\n", detailsContent)
 
-			downUrl := e.ChildAttr("#paydown .downbtn","href")
+			downUrl := e.ChildAttr("#paydown .downbtn", "href")
 
 			//fmt.Printf("downUrl: %s\n", downUrl)
 			/*go func(href string) {
 				detailsUrl <- href
 			}(href)*/
 
-
 			c2 := colly.NewCollector()
 
 			c2.OnHTML(".download-text", func(e *colly.HTMLElement) {
 				//detailsTitle := e.ChildText(".post-intro h1")
-				down := e.ChildAttrs("span a","href")
-
+				down := e.ChildAttrs("span a", "href")
 
 				// Print link
 				//fmt.Printf("down: %s\n", down)
 				//for _, v := range down{
-					u := strings.Split(down[0], ".")
+				u := strings.Split(down[0], ".")
 
-					CreateDir("../books/" + category + "/")
-					path := "books/" + category + "/" + detailsTitle + "." + u[len(u) -1]
-					DownloadFileProgress(down[0],"../books/" + category + "/" + detailsTitle + "." + u[len(u) -1])
-					item.Download = path
+				CreateDir("../books/" + category + "/")
+				path := "books/" + category + "/" + detailsTitle + "." + u[len(u)-1]
+				DownloadFileProgress(down[0], "../books/"+category+"/"+detailsTitle+"."+u[len(u)-1])
+				item.Download = path
 				//}
 
 			})
@@ -168,9 +165,8 @@ func main() {
 			//DownloadFileProgress(downUrl,"../books/"+category + "/" + detailsTitle + "")
 		}
 
-
 		//fmt.Println(item)
-		data = append(data,item)
+		data = append(data, item)
 	})
 
 	// Before making a request print "Visiting ..."
@@ -183,22 +179,21 @@ func main() {
 
 	fmt.Println(data)
 
-	insert(db,data)
-
+	insert(db, data)
 
 }
 
 type Reader struct {
 	io.Reader
-	Total int64
+	Total   int64
 	Current int64
 }
 
-func (r *Reader) Read(p []byte) (n int, err error){
+func (r *Reader) Read(p []byte) (n int, err error) {
 	n, err = r.Reader.Read(p)
 
 	r.Current += int64(n)
-	fmt.Printf("\r进度 %.2f%%", float64(r.Current * 10000/ r.Total)/100)
+	fmt.Printf("\r进度 %.2f%%", float64(r.Current*10000/r.Total)/100)
 
 	return
 }
@@ -208,24 +203,24 @@ func DownloadFileProgress(url, filename string) {
 	if err != nil {
 		panic(err)
 	}
-	defer func() {_ = r.Body.Close()}()
+	defer func() { _ = r.Body.Close() }()
 
 	f, err := os.Create(filename)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {_ = f.Close()}()
+	defer func() { _ = f.Close() }()
 
 	reader := &Reader{
 		Reader: r.Body,
-		Total: r.ContentLength,
+		Total:  r.ContentLength,
 	}
 
 	_, _ = io.Copy(f, reader)
 
 }
 
-func CreateDir(path string){
+func CreateDir(path string) {
 	if _, err := os.Stat(path); err == nil {
 		fmt.Println("path exists 1", path)
 	} else {
@@ -246,7 +241,7 @@ func CreateDir(path string){
 }
 
 var fields = []string{
-	"title" ,
+	"title",
 	"describe",
 	"cover",
 	"content",
@@ -259,17 +254,22 @@ var fields = []string{
 	"created",
 	"status",
 }
-func insert(db *sql.DB,d []Item)  {
+
+func insert(db *sql.DB, d []Item) {
 
 	flows_replace := make([]string, len(fields))
 	for i := range fields {
 		flows_replace[i] = fmt.Sprintf("$%v", i+1)
 	}
-	query := fmt.Sprintf("INSERT INTO flow_statistics (%v) VALUES (%v)", strings.Join(fields, ", "), strings.Join(flows_replace, ", "))
+	query := fmt.Sprintf("INSERT INTO books (%v) VALUES (%v)", strings.Join(fields, ", "), strings.Join(flows_replace, ", "))
 
+	for _, v := range d {
 
-	_, err := db.Exec(query, )
-	if err != nil {
-		fmt.Println(err)
+		_, err := db.Exec(query, v.Title, v.Describe, v.Cover, v.Content, v.About, v.Category, v.Author, v.Label, v.Score,
+			v.Download, time.Now().Format("2006-01-02 15:04:05"), 1,
+		)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
