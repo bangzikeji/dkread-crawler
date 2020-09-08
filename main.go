@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -28,6 +29,22 @@ type Item struct {
 }
 
 func main() {
+
+	// 定义几个变量，用于接收命令行的参数值
+	var visitUrl string
+	var pageNum int
+
+	flag.StringVar(&visitUrl, "url", "", "链接")
+	flag.IntVar(&pageNum, "page", 0, "页码")
+
+	// 【必须调用】从 arguments 中解析注册的 flag
+	flag.Parse()
+
+	if visitUrl == "" || pageNum == 0 {
+		fmt.Println("gao sha ne?")
+		return
+	}
+
 	// Instantiate default collector
 	mysql := fmt.Sprintf("%s:%s@(%s:%d)/%s", "root", "2014gaokao", "127.0.0.1", 3306, "dkread")
 	db, err := sql.Open("mysql", mysql)
@@ -39,7 +56,7 @@ func main() {
 
 	c := colly.NewCollector(colly.MaxDepth(1))
 	var page = 1
-	var max = 2
+	var max = pageNum
 	// On every a element which has href attribute call callback
 	c.OnHTML(".archive-scroll .post .clearfix", func(e *colly.HTMLElement) {
 		href := e.ChildAttr(".post-img", "href")
@@ -161,7 +178,7 @@ func main() {
 
 		if page <= max {
 			page += 1
-			c.Visit("https://www.enjing.com/wenxue/page/" + strconv.Itoa(page) + "/")
+			c.Visit(visitUrl + "/page/" + strconv.Itoa(page) + "/")
 			//DownloadFileProgress(downUrl,"../books/"+category + "/" + detailsTitle + "")
 		}
 
@@ -175,9 +192,9 @@ func main() {
 	})
 
 	// Start scraping on https://hackerspaces.org
-	c.Visit("https://www.enjing.com/wenxue/")
+	c.Visit(visitUrl)
 
-	fmt.Println(data)
+	//fmt.Println(data)
 
 	insert(db, data)
 
